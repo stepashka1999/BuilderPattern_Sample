@@ -1,77 +1,89 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace BuilderPattern
 {
-    internal class Program
+    internal partial class Program
     {
-        public class HtmlElement
+        public class Person
         {
-            private const int _indentSize = 2;
-
-            public string Name, Text;
-            //We can do Lazy list but im too lazy to this 
-            public List<HtmlElement> Elements = new List<HtmlElement>();
-
-            public HtmlElement() { }
-
-            public HtmlElement(string name, string text)
-            {
-                Name = name;
-                Text = text;
-            }
+            public string StreetAddress, PostCode, City;
+            public string CompanyName, Position;
+            public int AnnualIncome;
 
             public override string ToString()
             {
-                return ToStringImpl(0);
-            }
-
-            private string ToStringImpl(int indent)
-            {
-                var sb = new StringBuilder();
-                var i = new string(' ', _indentSize * indent);
-                sb.AppendLine($"{i}<{Name}>");
-
-                if (!string.IsNullOrEmpty(Text))
-                {
-                    sb.Append(new string(' ', _indentSize * (indent + 1)));
-                    sb.Append(Text);
-                    sb.AppendLine();
-                }
-
-                foreach(var el in Elements)
-                    sb.Append(el.ToStringImpl(indent + 1));
-
-                sb.AppendLine($"{i}</{Name}>");
-
-                return sb.ToString();
+                return $"{nameof(StreetAddress)}: {StreetAddress}, {nameof(PostCode)}: {PostCode}, {nameof(City)}: {City}" +
+                       $"\n{nameof(CompanyName)}: {CompanyName}, {nameof(Position)}: {Position}" +
+                       $"\n{nameof(AnnualIncome)}: {AnnualIncome}";
             }
         }
 
-        public class HtmlBuilder
+        public class PersonBuilder
         {
-            private readonly string _rootName;
-            protected HtmlElement root = new HtmlElement();
+            protected Person person;
 
-            public HtmlBuilder(string rootName)
+            public PersonBuilder()
             {
-                _rootName = rootName;
-                root.Name = rootName;
+                person = new Person();
             }
 
-            public void AddChild(string name, string text)
+            public PersonBuilder(Person person)
             {
-                var el = new HtmlElement(name, text);
-                root.Elements.Add(el);
+                this.person = person;
             }
 
-            public override string ToString() => root.ToString();
+            public PersonAddressBuilder Lives => new(person);
 
-            public void Clear() => root.Elements.Clear();
+            public PersonJobBuilder Works => new(person);
 
-            public HtmlElement Build => root;
-            
+            public static implicit operator Person(PersonBuilder builder) => builder.person;
+
+        }
+
+        public class PersonAddressBuilder : PersonBuilder
+        {
+            public PersonAddressBuilder(Person person) : base(person) { }
+
+            public PersonAddressBuilder At(string streetAddress)
+            {
+                person.StreetAddress = streetAddress;
+                return this;
+            }
+
+            public PersonAddressBuilder WithPostCode(string postcode)
+            {
+                person.PostCode = postcode;
+                return this;
+            }
+
+            public PersonAddressBuilder In(string city)
+            {
+                person.City = city;
+                return this;
+            }
+        }
+
+        public class PersonJobBuilder : PersonBuilder
+        {
+            public PersonJobBuilder(Person person) : base(person) { }
+
+            public PersonJobBuilder At(string companyName)
+            {
+                person.CompanyName = companyName;
+                return this;
+            }
+
+            public PersonJobBuilder AsA(string position)
+            {
+                person.Position = position;
+                return this;
+            }
+
+            public PersonJobBuilder Earning(int annualIncome)
+            {
+                person.AnnualIncome = annualIncome;
+                return this;
+            }
         }
 
         static void Main(string[] args)
@@ -80,14 +92,56 @@ namespace BuilderPattern
             //The End
             //XD, just kidding
 
-            var words = new[] { "Hello", ", ", "world", "!" };
-            var htmlBuilder = new HtmlBuilder("ul");
-            foreach(var word in words)
+            //Sample with default builder
+            //SampleDemonstrator.DefaultSampleDemonstration();
+
+            //Sample builder with fluent api
+            //SampleDemonstrator.FluentInterfaceDemonstration();
+
+            //Sample more advanced builder - PersonBuilder
+            SampleDemonstrator.PersonBuilderDempnstration();
+        }
+
+        static class SampleDemonstrator
+        {
+            public static void DefaultSampleDemonstration()
             {
-                htmlBuilder.AddChild("li", word);
+                var words = new[] { "Hello", ", ", "world", "!" };
+                var htmlBuilder = new HtmlBuilder("ul");
+                foreach (var word in words)
+                {
+                    htmlBuilder.AddChild("li", word);
+                }
+
+                Console.WriteLine(htmlBuilder.ToString());
             }
 
-            Console.WriteLine(htmlBuilder.ToString());
+            public static void FluentInterfaceDemonstration()
+            {
+                var htmlBuilder = new HtmlBuilder("div");
+                var resultHtml = htmlBuilder.AddChild("h1", "Hello World!")
+                           .AddChild("p", "*Some lorem text*")
+                           .Build()
+                           .ToString();
+                Console.WriteLine(resultHtml);
+            }
+
+            public static void PersonBuilderDempnstration()
+            {
+                var personBuilder = new PersonBuilder();
+                Person person = personBuilder
+                                    .Lives
+                                        .At("123 Obtobers Street")
+                                        .In("Novosibirsk")
+                                        .WithPostCode("630008")
+                                    .Works
+                                        .At("Google")
+                                        .AsA("Juniour Engineer")
+                                        .Earning(40);
+
+                Console.WriteLine(person);
+            }
         }
+
     }
 }
